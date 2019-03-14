@@ -1,65 +1,61 @@
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class Launch {
 	
 	
-	/* Attributs */
-	
-	private ArrayList<Data> data;				// Liste de données
-	private float[][] baseDeConnaissances;		// Base de connaissance
-	private float[][] resultatsAttendus;		// Résultats attendus
-	private Fichier f; 							// Class qui permet de retirer les informations d'un fichier 
-	private Reseau reseau;						// Le réseau de neurones
-	
-	
-	/* Constructeur */ 
-	
-	public Launch() {
 		
-		this.f = new Fichier();
-		this.data = this.f.getData();			// On récupere les données du fichier dans la variable data
+	public static void main(String[] args) throws Exception {
 		
-		/* Les 2 matrices basesDeConnaissances et resultats Attendus s'initialisent grace à la fonction initialisation().
-		 * La matrice baseDeConnaissances prends comme valeurs tous les attributs du fichier sous la forme (attribut1, attribut2, ..3, ..4)
-		 * La matrice resultatsAttendus prends comme valeurs : 1 0 si la classe est 1 ou 0 1 si la classe est 0 */
-		this.baseDeConnaissances = new float[data.size()][4];
-		this.resultatsAttendus = new float[data.size()][2];
+		int compteur = 0;
 		
-		/* Le réseau de neurones dispose de :
-		 * *** 4 neurones en entrée car 4 attributs dans le fichier,
-		 * *** N neurones cachés (nous pouvons en mettre autant que l'on veut),
-		 * *** 2 neurones en sortie car 2 sorties possibles : 0-1 ou 1-0  */
-		this.reseau = new Reseau(3,3,2);		
-		
-		initialisation();
-		run();
-	}
+		float[][] baseDeConnaissances = new float[8][4];
+		float[][] resultatsAttendus = new float[8][2];
 		
 		
-	/* Méthodes */
-	
-	/* Initialisation des matrices */
-	private void initialisation() {
-		for(int i = 0; i < data.size(); i++) {
-			this.baseDeConnaissances[i][0] = (float) data.get(i).getAttribut(0);
-			this.baseDeConnaissances[i][1] = (float) data.get(i).getAttribut(1);
-			this.baseDeConnaissances[i][2] = (float) data.get(i).getAttribut(2);
-			//this.baseDeConnaissances[i][3] = (float) data.get(i).getAttribut(3);
+		BufferedReader br;
+		String s;
+		String[] separe;
 			
-			if(data.get(i).getClasse().equals("1")) {
-				this.resultatsAttendus[i][0] = 1;
-				this.resultatsAttendus[i][1] = 0;
-			} else if(data.get(i).getClasse().equals("0")) {
-				this.resultatsAttendus[i][0] = 0;
-				this.resultatsAttendus[i][1] = 1;
+		br = new BufferedReader(new FileReader("src/test.csv"));
+		System.out.println("Lecture du fichier : src/test.csv");
+			
+			
+		br.readLine(); // On passe la premiere ligne car c'est celle qui contient les noms des attributs 
+			
+		/* On lis le fichier pour recuperer les valeurs */
+		while((s = br.readLine()) != null) {
+				
+				/* Le séparateur est une virgule */
+				separe = s.split(",");
+				
+				baseDeConnaissances[compteur][0] = Float.parseFloat(separe[0]);
+				baseDeConnaissances[compteur][1] = Float.parseFloat(separe[1]);
+				baseDeConnaissances[compteur][2] = Float.parseFloat(separe[2]);
+				baseDeConnaissances[compteur][3] = Float.parseFloat(separe[3]);
+				
+				float classe = Float.parseFloat(separe[4]);
+				
+				if(classe == 1.0) {
+					resultatsAttendus[compteur][0] = 1;
+					resultatsAttendus[compteur][1] = 1;
+				} else if(classe == 0.0) {
+					resultatsAttendus[compteur][0] = 0;
+					resultatsAttendus[compteur][1] = 0;
+				}
+				compteur++;
 			}
-		}
-	}
+			br.close();
+			System.out.println("Lecture du fichier terminée, la liste data est complétée.");
 		
-	/* Lancement de l'IA */		
-	private void run() {
 		
-		/* On boucle ITERATIONS fois */
+		Reseau reseau = new Reseau(4,4,2);
+		
+	
+		/* 
+		 * Debut de l'apprentissage
+		 * On boucle ITERATIONS fois 
+		 * */
         for (int iterations = 0; iterations < Reseau.ITERATIONS; iterations++) {
 
             //-- Apprentissage
@@ -68,18 +64,15 @@ public class Launch {
             }
 
             //-- Affichage des résultats 
-            System.out.println("\nPeriode n°" + iterations);
-                
-            for (int i = 0; i < resultatsAttendus.length; i++) {
-                    float[] donnees = baseDeConnaissances[i];
-                    float[] sortieCalculee = reseau.calculerTousResultats(donnees);
-                   System.out.println(donnees[0] + ", " + donnees[1] + ", " + donnees[2] + " --> " + sortieCalculee[0] + " - " + sortieCalculee[1]);
+            if(iterations % 50 == 0) {
+	            System.out.println("\nPeriode n°" + iterations);
+	                
+	            for (int i = 0; i < resultatsAttendus.length; i++) {
+	                    float[] donnees = baseDeConnaissances[i];
+	                    float[] sortieCalculee = reseau.calculerTousResultats(donnees);
+	                    System.out.println(donnees[0] + ", " + donnees[1] + ", " + donnees[2] + " --> " + sortieCalculee[0] + " - " + sortieCalculee[1]);
+	            }
             }
-        }
-	}
-		
-	
-	public static void main(String[] args) {
-		new Launch();
+        }	
 	}
 }
