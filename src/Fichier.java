@@ -16,7 +16,7 @@ public class Fichier {
 		this.data = new ArrayList<Data>();
 		
 		try {
-			data = lectureFichier("src/BloodTransfusionServiceCenterDataSet.csv");
+			data = lectureFichier("src/test.csv");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -47,11 +47,12 @@ public class Fichier {
 			double val1 = Double.parseDouble(separe[0]);
 			double val2 = Double.parseDouble(separe[1]);
 			double val3 = Double.parseDouble(separe[2]);
-			double val4 = Double.parseDouble(separe[3]);
+			//double val4 = Double.parseDouble(separe[3]);
 			
-			String classe = separe[4];
+			String classe = separe[3];
 			
-			Data d = new Data(val1, val2, val3, val4, classe);
+			//Data d = new Data(val1, val2, val3, val4, classe);
+			Data d = new Data(val1, val2, val3, classe);
 			
 			this.data.add(d);	
 		}

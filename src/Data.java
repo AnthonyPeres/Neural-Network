@@ -13,6 +13,11 @@ public class Data {
 		this.attribut = new double[] {a1, a2, a3, a4};
 	}
 	
+	public Data(double a1, double a2, double a3, String classe) {
+		this.classe = classe;	
+		this.attribut = new double[] {a1, a2, a3};
+	}
+	
 	/* Méthodes */
 	
 	/* Le résultat que l'on souhaite obtenir suite au test de la classe : ici 0 ou 1 */

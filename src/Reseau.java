@@ -1,113 +1,245 @@
 
+import java.util.Arrays;
+import java.util.Random;
+
+/**
+  * 
+  * Class réseau composée de plusieurs couches  
+  * 
+  * */
+
 public class Reseau {
-	
-	/* Attributs */
-	
-	public static final float COEFFICIENT_APPRENTISSAGE = (float) 0.6;		// Coefficient d'apprentissage
-	public static final int ITERATIONS = 1000;								// Nombres d'itérations souhaitées
-	public static final float INERTIE = (float) 0.6;						// Terme dit "d'inertie" afin d'echapper aux minimums locaux
-	private Couche[] couches;								// Ce tableau est la liste des connexions entres les neurones des différentes couches : Entrés / Cachés / Sortie
-	
-	
-	/* Constructeur 
-	 * Il prend en parametres :
-	 * *** Un nombre de neurones en entrées --> ici 4 car 4 attributs
-	 * *** Un nombre de neurones cachés 	--> on met ce que l'on souhaite (ex : 6)
-	 * *** Un nombre de neurones en sorties	--> ici 2 car 2 sorties possibles : 0 1 ou 1 0 */
-	public Reseau(int neuronesEntree, int neuronesCaches, int neuronesSortie) {
-		
-		/* Nous initalisons le tableau de couches avec une taille de 2 car il y a uniquement une connexion entre : 
-		 * neurones en entrées -->  neurones cachés 
-		 * 							neurones cachés --> neurones en sortie  */
-		this.couches = new Couche[2];
-		this.couches[0] = new Couche(neuronesEntree, neuronesCaches);
-		this.couches[1] = new Couche(neuronesCaches, neuronesSortie);
-	}
 
+   /** Variables */
 	
-	/* Méthodes */
-	
-	
-	/** Processus d'apprentissage avec rétropopagation du gradient qui repousse l'activité neuronale sortie --> entrée afin d'adapter les connexions. 
-	 * @param baseDeConnaissances (float[]) : listes des valeurs en entrée
-	 * @param resultatsAttendus (float[]) : les des résultats attendus 
-	 * @param coefficientApprentissage (float) : Celui initialisé dans les Attributs (doit être compris entre 0.1 et 0.3)
-	 * @param inertie (float) : Sert à sortir des minimums locaux
-	 * */
-	public void apprentissage(float[] baseDeConnaissances, float[] resultatsAttendus, float coefficientApprentissage, float inertie) {
-		
-		// On fait appel à la fonction run afin de calculer les resultats en sortie depuis la baseDeConnaissances
-		float[] resultatEnSortie = run(baseDeConnaissances);
-		
-		float[] erreur = new float[resultatEnSortie.length];
-		
-		for(int i = 0; i < erreur.length; i++) {
-			erreur[i] = resultatsAttendus[i] - resultatEnSortie[i];		// On compare le resultat souhaite - le resultat que l'on a 
-		}
-		
-		// Retropopagation, obtenir les erreurs des valeurs calculees 
-		for(int i = this.couches.length - 1; i >= 0; i--) {
-			erreur = couches[i].apprend(erreur, coefficientApprentissage, inertie);
-		}
-	}
-	
-	
-	/* Calculer les résultats en sortie depuis la base de connaissances */
-	public float[] run(float[] baseDeConnaissances) {
-		
-		float[] valeursResultantes = baseDeConnaissances;
-		
-		/* Pour toutes les couches on va utiliser la fonction run avec les valeurs de la base de connaissances */
-		for(int i = 0; i < this.couches.length; i++) {
-			valeursResultantes = couches[i].run(valeursResultantes);
-		}
-		return valeursResultantes;
-	}
+	public final float LEARNING_RATE = 0.5f;			// Taux d'apprentissage 
+    public static final int ITERATIONS = 1000;			// Nombre d'itérations
+    private Couche[] _couches; 							// Les couches du réseau 
 
-	
+    
+    /** Constructeur du réseau de neurones
+     * @param neuronesEntrees 	(int) : Entier du nombre de neurones en entrée
+     * @param neuronesCaches 	(int) : Entier du nombre de neurones cachés
+     * @param neuronesSorties 	(int) : Entier du nombre de neurones en sortie */
+    public Reseau(int neuronesEntrees, int neuronesCaches, int neuronesSorties) {
+    	_couches = new Couche[2];
+    	_couches[0] = new Couche(neuronesEntrees, neuronesCaches);
+    	_couches[1] = new Couche(neuronesCaches, neuronesSorties);
+    }
 
-	public static float sigmoide(float x) {
-		// TODO Auto-generated method stub
-		return (float) (1 / (1 + Math.exp(-x)));
-	}
-	
-	public static float deriveSigmoide(float x) {
-		// TODO Auto-generated method stub
-		return (x * (1-x));
-	}
-	
-	
-	
-	
-	
+    
+    /** Méthodes */
+   
+    /** Processus d'apprentissage du réseau de neurones : 
+     * 	--> On calcule les résultats auxquels on applique la fonction sigmoide
+     *  --> On compare les résultats obtenus à ce que l'on devait obtenir : Erreur quadratique
+     *  --> On calcule le gradient
+     *  --> On modifie les poids
+     *  --> On rétropopage sur tout le réseau ( sortie --> entrée ) 
+     * @param baseDeConnnaissances 	(float[]) : La base de connaissance utilisée (les entrées)
+     * @param resultatsAttendus 	(float[]) : Liste des valeurs attendues (les y°) */
+    public void apprentissage(float[] baseDeConnnaissances, float[] resultatsAttendus) {
+        
+    	/* On calcule les résultats pour toutes les couches du réseau : resultatsCalculees[] contient la liste des sorties APRES la fonction sigmoide */
+    	float[] resultatsCalculees = calculerTousResultats(baseDeConnnaissances);
+    	
+    	
+    	/* On calcule les erreurs pour toutes les couches du réseau */
+    	float[] erreurs = calculerErreurs(resultatsCalculees, resultatsAttendus);
+    	
+    	
+    	/* On appelle la fonction apprentissage sur chaques couches pour :
+    	 * --> Calculer le gradient
+    	 * --> Modifier les poids
+    	 * --> Retropopager le gradient et mettre à jours les poids 
+    	 * 
+    	 *  <---------------------------- RETROPOPAGATION DE LA DROITE VERS LA GAUCHE DU RÉSEAU (i--)
+    	 * 
+    	 * 	e1--->O----->O----->O------>O s1
+    	 * 		 	/   \		 /
+    	 * 	e2--->O----->O----->O------>O s2
+    	 *      |      |     |       |
+    	 *  en- - - - - - - - - - -- etc
+    	 * 
+    	 * */
+        for (int i = _couches.length - 1; i >= 0; i--) {
+            erreurs = _couches[i].apprentissage(erreurs, this.LEARNING_RATE);
+        }
+    }
 
 
-	public float getCoefficientApprentissage() {
-		return COEFFICIENT_APPRENTISSAGE;
-	}
-	public int getIterations() {
-		return ITERATIONS;
-	}
-	public float getInertie() {
-		return INERTIE;
-	}
-	public Couche[] getCouches() {
-		return couches;
-	}
+    /** On demande le calcule des résultat y pour tout les exemples et pour toutes les couches du réseau
+     * @param input 		(float[]) : La base de connaissances
+     * @return resultats 	(float[]) : La liste des résultats APRES la fonction sigmoide sur ceux ci pour toutes les couches */
+    public float[] calculerTousResultats(float[] baseDeConnnaissances) {
+    	
+    	float[] exemples = baseDeConnnaissances;
+        
+    	/* Pour toutes les couches on fait appel au calcul des résultats */
+    	for (int i = 0; i < _couches.length; i++) {
+    		exemples = _couches[i].calculerResultats(exemples);
+        }
+        
+        return exemples;
+    }
 
-	public void setCouches(Couche[] couches) {
-		this.couches = couches;
-	}
+    
+    /** Fonction qui calcule les erreurs : Différence entre le résultat attendu et le résultat obtenu 
+     * TODO: On doit ajouter 1/2 pour completer la formule : E = (1/2)* Somme(erreursAttendus - erreursObtenus)^2 
+     * @param : resultatsCalculees	(float[]) : Liste des résultats calculés
+     * @param : resultatsAttendus 	(float[]) : Liste des résultats Attendus */
+    public float[] calculerErreurs(float[] resultatsCalculees, float[] resultatsAttendus) {
+    	
+        float[] erreurs = new float[resultatsCalculees.length];
+        
+        /* On calcule les erreurs pour tous les résultats */
+        for (int i = 0; i < erreurs.length; i++) {
+            erreurs[i] = (resultatsAttendus[i] - resultatsCalculees[i]);
+        }
+        
+    	return erreurs;
+    }
+    
+    /** Fonction qui retourne une couche de connexions
+     * @param index 	(int) : Entier de l'index de la couche de connexions
+     * @return 			(Couche) : La couche de connexions */
+    public Couche getLayer(int index) { return _couches[index]; }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    /**
+     * 
+     * Couche du 
+     * Reseau 
+     * 
+     * */
+    public class Couche {
+    	
+    	/** Variables */
+    	
+        private float[] _s;		// Neurones en sortie
+        private float[] _e;		// Neurones en entree
+        private float[] _w;		// Poids
+        
+        private Random nbAleat;	// Generateur de nombres aléatoires 
 
+        
+        /** Constructeur de la couche du réseau 
+         * @param nbE 	(int) : Nombre de neurones en entrée
+         * @param nbS 	(int) : Nombre de neurones en sortie */
+        public Couche(int nbE, int nbS) {
+        	
+        	/* On initialise les tailles des couches de neurones */
+        	_s = new float[nbS];		// On creer "nbS" neurones en sortie
+        	_e = new float[nbE + 1];	// On creer "nbE" neurones en entrée + le biais (Neurone qui émet un signal d'intensité 1)
 
+        	/* On initialise les poids */
+            _w = new float[_e.length * _s.length];	// Il y a autant de connexions que de neurones en entrée * neurones en sortie
+            initialiserPoids();
+            
+        }
 
+        /** Méthodes */
+        
+        /** Fonction qui initialise les poids avec des valeurs comprises
+         * entre -0.1 et 0.1 */
+        public void initialiserPoids() {
+        	this.nbAleat = new Random();
+            for (int i = 0; i < _w.length; i++) {
+            	_w[i] = (float) (-0.1 + nbAleat.nextFloat() * (0.1 - -0.1));
+            }
+        }
+        
+        
+        /** Lance les calculs : s[i] = e[i] * w[i] Puis appelle la fonction sigmoïde sur s[i]
+         * @param exemples	(float[]) : Liste des valeurs en entrée
+         * @return 			(float[]) : Copie de la liste des valeurs calculées APRES la fonction sigmoide sur ceux-ci  */
+        public float[] calculerResultats(float[] exemples) {
+           
+        	/* On copie la liste des données (cf. Les entrées) dans la liste des entrées de la couche. */
+            System.arraycopy(exemples, 0, _e, 0, exemples.length);
+            
+            /* Le biais est un neurone qui émet un signal d'intensité 1 donc on lui donne comme valeur 1 */
+            _e[_e.length - 1] = 1;
+            
+            
+            /* On complete toutes les sorties 
+             * 
+             *				-> s1 
+             * 			   /
+             * 		- - ->O-----> s2
+             * 			   \	
+             * 				-> s3
+             * */
+            for (int i = 0; i < _s.length; i++) {
+            
+            	/* Pour tout les neurones en entrée : La sortie s = Les entrées * Les poids
+            	 * 
+            	 * 	 e1 \w1
+            	 *    w2 \
+            	 * e2 ---->O- - - -
+            	 *       /
+            	 *   e3 /w3
+            	 * 
+            	 * */
+                for (int j = 0; j < _e.length; j++) { _s[i] += _w[j] * _e[j]; }		
+                
+                
+                /* Apres avoir calculer ces résultats, on calcule la fonction sigmoïde (fonction d'activation) la sortie i :
+                 * 
+	             *  		    			  -> s1 
+	             * 		   _________________ /
+	             * -->O-->|FONCTION SIGMOIDE|--> s2
+	             * 		   ----------------- \	
+	             * 							  -> s3
+                 * */
+                _s[i] = Sigmoide(_s[i]);
+            
+            }
+            return Arrays.copyOf(_s, _s.length);
+        }
+        
+        
+        /** Fonction qui calcule le gradient et modifie les poids par rétropopagation du gradient.
+         * @param erreurs 				(float[]) : Liste des erreurs
+         * @param tauxApprentissage 	(float)   : Taux d'apprentissage que l'on a donné dans la class Réseau */
+        public float[] apprentissage(float[] erreurs, float tauxApprentissage) {
+           
+        	float[] erreurSuivante = new float[_e.length];
+        	
+        	/* On parcourt le réseau */
+        	for (int i = 0; i < _s.length; i++) {
+                for (int j = 0; j < _e.length; j++) {
+                
+                	/* Gradient (Delta) = taux apprentissage * erreurs (resultat attendu - resultat obtenu) * derivée de la sigmoide * l'entrée */
+                	float gradient = tauxApprentissage * erreurs[i] * DeriveeSigmoide(_s[i]) * _e[j];
+                		
+                	/* On rétropopage en changent les poids grace au gradient */
+                	int poidsPrecedent = j;
+                	erreurSuivante[j] = erreurSuivante[j] + _w[poidsPrecedent] * gradient;
+                    _w[poidsPrecedent] += gradient;
+                }
+            }
+            return erreurSuivante;
+        }
+    }
+    
+    
+    /** Fonction qui calcule la fonction sigmoide
+     * @param x 	(float) : Valeur
+     * @return 		(float) : Valeur de la sigmoide de x */
+    public float Sigmoide(float x) { return (float) (1 / (1 + Math.exp(-x))); }
 
-	
-
-
-
-
-	
-
-	
+    
+    /** Fonction qui calcule la dérivée de la fonction sigmoide
+     * @param x 	(float) : Valeur
+     * @return 		(float) : Valeur de la dérivée de la sigmoide de x */
+    public float DeriveeSigmoide(float x) { return x * (1 - x); }
 }

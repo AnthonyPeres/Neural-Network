@@ -29,7 +29,7 @@ public class Launch {
 		 * *** 4 neurones en entrée car 4 attributs dans le fichier,
 		 * *** N neurones cachés (nous pouvons en mettre autant que l'on veut),
 		 * *** 2 neurones en sortie car 2 sorties possibles : 0-1 ou 1-0  */
-		this.reseau = new Reseau(4,8,2);		
+		this.reseau = new Reseau(3,3,2);		
 		
 		initialisation();
 		run();
@@ -44,7 +44,7 @@ public class Launch {
 			this.baseDeConnaissances[i][0] = (float) data.get(i).getAttribut(0);
 			this.baseDeConnaissances[i][1] = (float) data.get(i).getAttribut(1);
 			this.baseDeConnaissances[i][2] = (float) data.get(i).getAttribut(2);
-			this.baseDeConnaissances[i][3] = (float) data.get(i).getAttribut(3);
+			//this.baseDeConnaissances[i][3] = (float) data.get(i).getAttribut(3);
 			
 			if(data.get(i).getClasse().equals("1")) {
 				this.resultatsAttendus[i][0] = 1;
@@ -59,22 +59,23 @@ public class Launch {
 	/* Lancement de l'IA */		
 	private void run() {
 		
-		/* On boucle jusqu'a temps que l'on arrive au nombre d'itérations souhaitées dans la class Reseau */
-		for(int iterations = 0; iterations < this.reseau.getIterations(); iterations++) {
-			
-			//--> Apprentissage
-			for(int i = 0; i < this.data.size(); i++) {
-				this.reseau.apprentissage(this.baseDeConnaissances[i], this.resultatsAttendus[i], this.reseau.getCoefficientApprentissage(), this.reseau.getInertie());
-			}
-			
-			//--> Afficher l'evolution
-			System.out.println("Periode : "+iterations+"\n");
-			for(int i = 0; i < resultatsAttendus.length; i++) {
-				float[] donnees = baseDeConnaissances[i];
-				float[] sortieCalculee = reseau.run(donnees);
-				System.out.println(donnees[0] + ", " + donnees[1] + ", " + donnees[2] + ", " + donnees[3] + " --> "+sortieCalculee[0] + " - " +sortieCalculee[1]);
-			}
-		}
+		/* On boucle ITERATIONS fois */
+        for (int iterations = 0; iterations < Reseau.ITERATIONS; iterations++) {
+
+            //-- Apprentissage
+            for (int i = 0; i < resultatsAttendus.length; i++) {
+                reseau.apprentissage(baseDeConnaissances[i], resultatsAttendus[i]);
+            }
+
+            //-- Affichage des résultats 
+            System.out.println("\nPeriode n°" + iterations);
+                
+            for (int i = 0; i < resultatsAttendus.length; i++) {
+                    float[] donnees = baseDeConnaissances[i];
+                    float[] sortieCalculee = reseau.calculerTousResultats(donnees);
+                   System.out.println(donnees[0] + ", " + donnees[1] + ", " + donnees[2] + " --> " + sortieCalculee[0] + " - " + sortieCalculee[1]);
+            }
+        }
 	}
 		
 	
