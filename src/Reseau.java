@@ -12,7 +12,7 @@ public class Reseau {
 
    /** Variables */
 	
-	public final float LEARNING_RATE = 0.5f;			// Taux d'apprentissage 
+	public final float TAUX_APPRENTISSAGE = 0.3f;			// Taux d'apprentissage 
     public static final int ITERATIONS = 1000;			// Nombre d'itérations
     private Couche[] _couches; 							// Les couches du réseau 
 
@@ -44,8 +44,11 @@ public class Reseau {
     	float[] resultatsCalculees = calculerTousResultats(baseDeConnnaissances);
     	
     	
-    	/* On calcule les erreurs pour toutes les couches du réseau */
-    	float[] erreurs = calculerErreurs(resultatsCalculees, resultatsAttendus);
+    	/* On calcule les erreurs : resultatsAttendus - resultatsCalculees */
+    	float[] erreurs = new float[resultatsCalculees.length];
+    	for (int i = 0; i < erreurs.length; i++) {
+    		erreurs[i] = (resultatsAttendus[i] - resultatsCalculees[i]);
+        }
     	
     	
     	/* On appelle la fonction apprentissage sur chaques couches pour :
@@ -63,7 +66,7 @@ public class Reseau {
     	 * 
     	 * */
         for (int i = _couches.length - 1; i >= 0; i--) {
-            erreurs = _couches[i].apprentissage(erreurs, this.LEARNING_RATE);
+            erreurs = _couches[i].apprentissage(erreurs, this.TAUX_APPRENTISSAGE);
         }
     }
 
@@ -81,23 +84,6 @@ public class Reseau {
         }
         
         return exemples;
-    }
-
-    
-    /** Fonction qui calcule les erreurs : Différence entre le résultat attendu et le résultat obtenu 
-     * TODO: On doit ajouter 1/2 pour completer la formule : E = (1/2)* Somme(erreursAttendus - erreursObtenus)^2 
-     * @param : resultatsCalculees	(float[]) : Liste des résultats calculés
-     * @param : resultatsAttendus 	(float[]) : Liste des résultats Attendus */
-    public float[] calculerErreurs(float[] resultatsCalculees, float[] resultatsAttendus) {
-    	
-        float[] erreurs = new float[resultatsCalculees.length];
-        
-        /* On calcule les erreurs pour tous les résultats */
-        for (int i = 0; i < erreurs.length; i++) {
-            erreurs[i] = (resultatsAttendus[i] - resultatsCalculees[i]);
-        }
-        
-    	return erreurs;
     }
     
     /** Fonction qui retourne une couche de connexions
@@ -127,8 +113,9 @@ public class Reseau {
         private float[] _s;		// Neurones en sortie
         private float[] _e;		// Neurones en entree
         private float[] _w;		// Poids
-        
+        private float[] poidsDelta;
         private Random nbAleat;	// Generateur de nombres aléatoires 
+        
 
         
         /** Constructeur de la couche du réseau 
@@ -144,6 +131,8 @@ public class Reseau {
             _w = new float[_e.length * _s.length];	// Il y a autant de connexions que de neurones en entrée * neurones en sortie
             initialiserPoids();
             
+            poidsDelta = new float[_w.length];
+            
         }
 
         /** Méthodes */
@@ -153,7 +142,7 @@ public class Reseau {
         public void initialiserPoids() {
         	this.nbAleat = new Random();
             for (int i = 0; i < _w.length; i++) {
-            	_w[i] = (float) (-0.1 + nbAleat.nextFloat() * (0.1 - -0.1));
+            	_w[i] = (nbAleat.nextFloat() - 0.5f) * 4f;
             }
         }
         
@@ -169,6 +158,7 @@ public class Reseau {
             /* Le biais est un neurone qui émet un signal d'intensité 1 donc on lui donne comme valeur 1 */
             _e[_e.length - 1] = 1;
             
+            int decalage = 0;
             
             /* On complete toutes les sorties 
              * 
@@ -189,7 +179,9 @@ public class Reseau {
             	 *   e3 /w3
             	 * 
             	 * */
-                for (int j = 0; j < _e.length; j++) { _s[i] += _w[j] * _e[j]; }		
+                for (int j = 0; j < _e.length; j++) { 
+                	_s[i] += _w[decalage + j] * _e[j]; 
+                }		
                 
                 
                 /* Apres avoir calculer ces résultats, on calcule la fonction sigmoïde (fonction d'activation) la sortie i :
@@ -201,7 +193,7 @@ public class Reseau {
 	             * 							  -> s3
                  * */
                 _s[i] = Sigmoide(_s[i]);
-            
+                decalage += _e.length;
             }
             return Arrays.copyOf(_s, _s.length);
         }
@@ -211,35 +203,42 @@ public class Reseau {
          * @param erreurs 				(float[]) : Liste des erreurs
          * @param tauxApprentissage 	(float)   : Taux d'apprentissage que l'on a donné dans la class Réseau */
         public float[] apprentissage(float[] erreurs, float tauxApprentissage) {
-           
+        	
+        	int decalage = 0;
         	float[] erreurSuivante = new float[_e.length];
         	
-        	/* On parcourt le réseau */
+        	// On parcourt le réseau 
         	for (int i = 0; i < _s.length; i++) {
-                for (int j = 0; j < _e.length; j++) {
+        		for (int j = 0; j < _e.length; j++) {
                 
-                	/* Gradient (Delta) = taux apprentissage * erreurs (resultat attendu - resultat obtenu) * derivée de la sigmoide * l'entrée */
-                	float gradient = tauxApprentissage * erreurs[i] * DeriveeSigmoide(_s[i]) * _e[j];
-                		
-                	/* On rétropopage en changent les poids grace au gradient */
-                	int poidsPrecedent = j;
-                	erreurSuivante[j] = erreurSuivante[j] + _w[poidsPrecedent] * gradient;
-                    _w[poidsPrecedent] += gradient;
+                	int poidsPrecedent = decalage + j;
+                	
+                	erreurSuivante[j] += + _w[poidsPrecedent] * erreurs[i] * DeriveeSigmoide(_s[i]);
+                	
+                	// Gradient (Delta) = taux apprentissage * erreurs (resultat attendu - resultat obtenu) * derivée de la sigmoide * l'entrée 
+                	float gradient = tauxApprentissage * erreurs[i] * (float) DeriveeSigmoide(_s[i]) * _e[j];
+                	
+                	// On rétropopage en changent les poids grace au gradient 
+                	_w[poidsPrecedent] += gradient * tauxApprentissage + 0.6 * poidsDelta[poidsPrecedent];
+                    poidsDelta[poidsPrecedent] = gradient;
                 }
+                decalage += _e.length;
             }
             return erreurSuivante;
         }
+        
+        
+       
+        
+	    /** Fonction qui calcule la fonction sigmoide
+	     * @param x 	(float) : Valeur
+	     * @return 		(float) : Valeur de la sigmoide de x */
+	    public float Sigmoide(float x) { return ((float) (1 / (1 + Math.exp(-x)))); }
+	
+	    
+	    /** Fonction qui calcule la dérivée de la fonction sigmoide
+	     * @param x 	(float) : Valeur
+	     * @return 		(float) : Valeur de la dérivée de la sigmoide de x */
+	    public float DeriveeSigmoide(float x) { return (x * (1 - x)); }
     }
-    
-    
-    /** Fonction qui calcule la fonction sigmoide
-     * @param x 	(float) : Valeur
-     * @return 		(float) : Valeur de la sigmoide de x */
-    public float Sigmoide(float x) { return (float) (1 / (1 + Math.exp(-x))); }
-
-    
-    /** Fonction qui calcule la dérivée de la fonction sigmoide
-     * @param x 	(float) : Valeur
-     * @return 		(float) : Valeur de la dérivée de la sigmoide de x */
-    public float DeriveeSigmoide(float x) { return x * (1 - x); }
 }
