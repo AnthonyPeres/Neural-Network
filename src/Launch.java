@@ -16,7 +16,7 @@ public class Launch {
 		String[] separe;
 		BufferedReader br = new BufferedReader(new FileReader("src/iris.data.txt"));
 		
-		br.readLine(); 
+		//br.readLine(); 
 		while((s = br.readLine()) != null) {
 			separe = s.split(",");
 			
@@ -51,7 +51,7 @@ public class Launch {
 			
 		/****************************** ACTIVATION DU RÉSEAU ET DONC DE L'APPRENTISSAGE *******************************/
 		
-        for (int iterations = 0; iterations < Reseau.ITERATIONS; iterations++) {
+        for (int iterations = 0; iterations <= Reseau.ITERATIONS; iterations++) {
 
             //-- Apprentissage
             for (int i = 0; i < resultatsAttendus.length; i++) {
@@ -59,13 +59,13 @@ public class Launch {
             }
 
             //-- Affichage des résultats 
-            if((iterations +1 ) % 1000 == 0 ||iterations == Reseau.ITERATIONS) {
+            if(iterations % 50 == 0 || iterations == Reseau.ITERATIONS) {
 	            System.out.println("\nPeriode n°" + iterations);
 	                
 	            for(int i = 0; i < resultatsAttendus.length; i++) {
 	            	float[] donnees = baseDeConnaissances[i];
 	                float[] sortieCalculee = reseau.calculerTousResultats(donnees);
-	                System.out.println(donnees[0]+","+donnees[1]+","+donnees[2]+","+ donnees[3]+" - s -> "+Math.round(sortieCalculee[0])+" - "+Math.round(sortieCalculee[1])+" - "+Math.round(sortieCalculee[2]));
+	                System.out.println(donnees[0]+","+donnees[1]+","+donnees[2]+","+ donnees[3]+" - s -> "+sortieCalculee[0]+" - "+sortieCalculee[1]+" - "+sortieCalculee[2]);
 	            }
             }
         }	
