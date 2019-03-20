@@ -1,53 +1,83 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Launch {
 	
 	public static void main(String[] args) throws Exception {
 		
+		/** Les arguments */
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Quel est la base de donnée à étudier ? : ");
+		String nomDuFichier = sc.nextLine();
+		/*************************/
+
+
+		int NombreAttributs = 0;
 		
-		/***************************** LECTURE DU FICHIER POUR REMPLISSAGE DES 2 MATRICES *****************************/
+		ArrayList<String> classe = new ArrayList<String>();
 		
-		float[][] baseDeConnaissances = new float[150][4];
-		float[][] resultatsAttendus = new float[150][3];
+
 		
-		int compteur = 0;
-		String s;
+		BufferedReader br1 = new BufferedReader(new FileReader("BDD/"+nomDuFichier));
+
+		
+		ArrayList<String> texte = new ArrayList<String>();
+		String ligne;
+		int compteurLignes = 0;
 		String[] separe;
-		BufferedReader br = new BufferedReader(new FileReader("src/iris.data.txt"));
+
+
+		/** PARCOURS ET STOCKAGE DU FICHIER, INITIALISATION DES VARIABLES "NOMBREATTRIBUTS" "CLASSE" */
 		
-		//br.readLine(); 
-		while((s = br.readLine()) != null) {
-			separe = s.split(",");
-			
-			baseDeConnaissances[compteur][0] = Float.parseFloat(separe[0]);
-			baseDeConnaissances[compteur][1] = Float.parseFloat(separe[1]);
-			baseDeConnaissances[compteur][2] = Float.parseFloat(separe[2]);
-			baseDeConnaissances[compteur][3] = Float.parseFloat(separe[3]);
-			
-			String classe = separe[4];
-			
-			if(classe.equals("Iris-setosa")) {
-				resultatsAttendus[compteur][0] = 1;
-				resultatsAttendus[compteur][1] = 0;
-				resultatsAttendus[compteur][2] = 0;
-			} else if(classe.equals("Iris-versicolor")) {
-				resultatsAttendus[compteur][0] = 0;
-				resultatsAttendus[compteur][1] = 1;
-				resultatsAttendus[compteur][2] = 0;
-			} else if(classe.equals("Iris-virginica")) {
-				resultatsAttendus[compteur][0] = 0;
-				resultatsAttendus[compteur][1] = 0;
-				resultatsAttendus[compteur][2] = 1;
+		while((ligne = br1.readLine()) != null) {
+			separe = ligne.split(",");
+
+			// Des la premiere ligne on va recuperer le nombre d'attributs et la classe
+			if(compteurLignes == 0){
+				NombreAttributs = separe.length - 1;
+				classe.add(separe[separe.length-1]);
 			}
-			compteur++;
+
+			// On va regarder combien de resultats (sorties) nous avons, en les comparants
+			if(!classe.contains(separe[separe.length-1])){
+				classe.add(separe[separe.length-1]);
+			}
+
+			texte.add(ligne);
+			compteurLignes++;
+		} br1.close();
+
+	
+		/** Creation des 2 matrices grace aux informations soutirées dans le texte (nombre lignes, nombre attributs...) */
+		float[][] baseDeConnaissances = new float[compteurLignes][NombreAttributs];
+		float[][] resultatsAttendus = new float[compteurLignes][classe.size()];
+
+		for(int i = 0; i < compteurLignes; i++){
+
+			ligne = texte.get(i);
+			separe = ligne.split(",");
+
+			// On met les attributs dans la base de connaissances
+			for(int k = 0; k < NombreAttributs ; k++){
+				baseDeConnaissances[i][k] = Float.parseFloat(separe[k]);
+			}
+
+			for(int c = 0; c < classe.size(); c++){
+				if(classe.get(c).equals(separe[separe.length-1])){
+					resultatsAttendus[i][c] = 1;
+				} else {
+					resultatsAttendus[i][c] = 0;
+				} 
+			}
 		}
-		br.close();
-			
+
+		
 		
 		/************* CREATION DU RESEAU : 4 COUCHES ENTRÉES --> 6 COUCHES CACHEES --> 3 COUCHES SORTIES *************/
 		
-		Reseau reseau = new Reseau(4,6,3);
+		Reseau reseau = new Reseau(NombreAttributs,6,classe.size());
 			
 		/****************************** ACTIVATION DU RÉSEAU ET DONC DE L'APPRENTISSAGE *******************************/
 		
@@ -59,15 +89,39 @@ public class Launch {
             }
 
             //-- Affichage des résultats 
-            if(iterations % 50 == 0 || iterations == Reseau.ITERATIONS) {
+            if(iterations % 10 == 0 || iterations == Reseau.ITERATIONS) {
 	            System.out.println("\nPeriode n°" + iterations);
 	                
 	            for(int i = 0; i < resultatsAttendus.length; i++) {
 	            	float[] donnees = baseDeConnaissances[i];
 	                float[] sortieCalculee = reseau.calculerTousResultats(donnees);
-	                System.out.println(donnees[0]+","+donnees[1]+","+donnees[2]+","+ donnees[3]+" - s -> "+sortieCalculee[0]+" - "+sortieCalculee[1]+" - "+sortieCalculee[2]);
-	            }
+					
+					
+
+					String concatDonnees = "";
+					for(int l = 0; l < donnees.length; l++){
+						if(l == 0){
+							concatDonnees = concatDonnees +donnees[l];  
+						} else {
+							concatDonnees = concatDonnees +","+ donnees[l];  
+						}
+					}
+
+
+					String concatSortie = "";
+					for(int m = 0; m < sortieCalculee.length; m++){
+						if(m == 0){
+							concatSortie = concatSortie + Math.round(sortieCalculee[m]);  
+						} else {
+							concatSortie = concatSortie +","+ Math.round(sortieCalculee[m]);  
+						}
+					}
+
+
+					// On renvoie le resultat 
+					System.out.println(concatDonnees +" --> "+ concatSortie);				
+				}
             }
-        }	
+		}
 	}
 }
