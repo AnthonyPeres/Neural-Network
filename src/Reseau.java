@@ -13,7 +13,7 @@ public class Reseau {
    /** Variables */
 	
 	public final float TAUX_APPRENTISSAGE = 0.4f;			// Taux d'apprentissage 
-    public static final int ITERATIONS = 10000;			// Nombre d'itérations
+    public static final int ITERATIONS = 1000;			// Nombre d'itérations
     private Couche[] _couches; 							// Les couches du réseau 
 
     
